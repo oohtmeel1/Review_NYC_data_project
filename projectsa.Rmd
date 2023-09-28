@@ -1,0 +1,1387 @@
+---
+title: "A review of previous data on trends in shootings in NYC"
+author: "A.M"
+date: "2023-04-09"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE , message= FALSE, warning=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+
+
+```{r, include=FALSE,warning=FALSE}
+options(tinytex.verbose = FALSE)
+```
+
+``` {r message =TRUE,warning=FALSE}
+
+
+url_in <-download.file("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD",
+                       destfile = "NYC_schooting_data.csv")
+cases<- read.csv("NYC_schooting_data.csv")
+
+
+```
+## Abstract
+Looking at trends in data can help make decisions about budgeting and allocating resources for government entities, businesses etc. It is why it is important to properly parse, summarize and analyze such data. This study revisits an earlier study(fictional) and reviews the methods by which the data was analyzed, and challenges the conclusions drawn by the previous study. 
+The 4 Major boroughs were included in this study. Brooklyn, Bronx, Queens, and Manhattan. Staten Island was excluded due to having many missing values for the needed study, more data points were needed than were present. Data was compiled and trended in order to infer whether or not there were changes in the levels of crime seasonally in the area of New York City. 
+
+
+
+## Introduction
+New York City is a massive area consisting of several Boroughs. It is also the county seat of New York County. With a 2023 population of 7,888,121, it is the largest city in New York and the largest city in the United States.(*) This makes it a great candidate for obtaining large amounts of data. This paper details the analysis of one such data set. Namely the historical data of NYC shootings starting in 2006 to 2018. And whether or not the amounts of homicides is changing seasonally. The hypothesis is stated below: 
+
+https://worldpopulationreview.com/us-cities/new-york-city-ny-population*
+
+
+$$H_{0} = \text{There is an increase in the number of shootings seasonally.}$$
+$$H_{a} = \text{There is no change in the number of shootings during different seasons.} $$
+
+This paper is written in order to further explore a previous finding where an apparent trend was observed in the numbers of shootings versus the months of the year. With an upswing during the summer months and a trend downward during the winter and fall.  A figure from the previous study is shown below. 
+
+
+
+``` {r message =FALSE,warning=FALSE}
+
+
+library(dplyr)
+seasons <- cases %>% select(OCCUR_DATE,BORO)
+tabley <-prop.table(table(seasons$OCCUR_DATES)) 
+
+
+```
+
+
+``` {r message =FALSE,warning=FALSE}
+
+library(stringr)
+seasons$months<- substr(seasons$OCCUR_DATE, 1, 2)
+#(seasons)
+
+```
+
+
+```{r message =FALSE, include= TRUE,warning=FALSE}
+
+library(lubridate)
+library(stringr)
+seasons$OCCUR_DATES<- mdy(seasons$OCCUR_DATE)
+
+
+
+```
+
+
+
+
+
+``` {r message =FALSE, include= TRUE,warning=FALSE}
+
+
+
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+library(forecast)
+Brooklyn <- seasons %>% filter_at(vars(BORO), any_vars(grepl("BROOKLYN", .)))
+Brooklyn$date_formatted <- format(Brooklyn$OCCUR_DATES, "%m/%Y")
+
+Brooklyn5 <- Brooklyn %>% group_by(date_formatted) %>% summarise(frequency = n())
+## Maybe drop a whole bunch of stuff?
+Brooklyn10 <-Brooklyn
+
+Brooklyn10 <-Brooklyn10[order(Brooklyn10$OCCUR_DATES),]
+Brooklyn10 <-Brooklyn10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+
+Brooklyn11 <- Brooklyn10[!duplicated(Brooklyn10$OCCUR_DATES), ]
+Brooklyn11 <-Brooklyn11[,-1]
+Brooklyn11 <-Brooklyn11[,-1]
+Brooklyn11 <-Brooklyn11[,-1]
+
+Brooklynap <- lm(count ~ OCCUR_DATES, data = Brooklyn11)
+
+
+
+```
+
+
+
+
+
+``` {r message =FALSE, include= TRUE,warning=FALSE}
+
+January <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^01/", .)))
+February <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^02/", .)))
+March <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^03/", .)))
+April <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^04/", .)))
+May <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^05/", .)))
+June <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^06/", .)))
+July <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^07/", .)))
+August <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^08/", .)))
+September <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^09/", .)))
+October <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^10/", .)))
+November <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^11/", .)))
+December <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^12/", .)))
+
+
+
+January <- table(January$BORO)
+February <-table(February$BORO)
+March <- table(March$BORO)
+April <- table(April$BORO)
+May <- table(May$BORO)
+June <- table(June$BORO)
+July <- table(July$BORO)
+August <- table(August$BORO)
+September <- table(September$BORO)
+October <- table(October$BORO)
+November <-table(November$BORO)
+December <- table(December$BORO)
+
+total1 <-do.call("rbind", list(January,February,March,April, May, June, July, August, September, October, November, December))
+
+
+
+total1 <- as.data.frame(total1)
+colnames(total1)[5] ="STATEN_ISLAND"
+
+
+Months = c("January","February","March","April", "May", "June", "July", "August","September","October","November", "December")
+total1$Months = Months
+total1$Months <- factor( total1$Months, levels = c( "January", "February","March", "April", "May", "June", "July", "August", "September", "October" , "November", "December" ))
+
+
+options(repr.plot.width = 20, repr.plot.height =20)
+
+library(ggplot2)
+gg<- ggplot(total1, aes(x = Months)) +
+   geom_line(aes(y = BRONX, color = "BRONX", group = 1)) +
+   geom_point(aes(y = BRONX, color = "BRONX")) +
+   geom_line(aes(y = BROOKLYN, color = "BROOKLYN", group = 1)) +
+   geom_point(aes(y = BROOKLYN, color = "BROOKLYN")) +
+   geom_line(aes(y = MANHATTAN, color = "MANHATTAN", group = 1)) +
+   geom_point(aes(y = MANHATTAN, color = "MANHATTAN")) +
+   geom_line(aes(y = QUEENS, color = "QUEENS", group = 1)) +
+   geom_point(aes(y = QUEENS, color = "QUEENS")) +
+   geom_line(aes(y = STATEN_ISLAND, color = "STATEN_ISLAND", group = 1)) +
+   geom_point(aes(y = STATEN_ISLAND, color = "STATEN_ISLAND")) +
+   labs(subtitle = "Crimes VS Months",
+        y = "Number of Shootings",
+        x = "Months",
+        title = " Seasonal Changes in Crime in New York City ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+plot(gg)
+
+
+```
+
+
+
+
+## Materials and methods
+
+The data set came from the .gov data catalog, which is a huge repository of information that is free for all to use.
+https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic 
+The data was in  the form of a CSV file. 
+
+The libraries used: | 
+-------------|  
+dplyr  | 
+lubridate       | 
+tidyverse  |
+stringr|
+data.table|
+ggplot2|
+forecast|
+
+
+ 
+
+The data was loaded into R using a built in function and filtered for the occurrence date and the Borough. The data was then further subdivided into a separate section for each Borough. The stringr library and built in functions were used. This was done in order to simplify data visualization and make it easier to spot obvious differences and outliers in each data set. Ggplot2 was utilized for the data visualization portion. Each individual data set then had linear modeling applied to the resulting data. 
+
+
+ 
+
+
+
+
+# 
+
+
+
+``` {r message =FALSE, include= TRUE,warning=FALSE}
+
+
+year2006 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2006", .)))
+year2007 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2007", .)))
+year2008 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2008", .)))
+year2009 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2009", .)))
+year2010 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2010", .)))
+year2011 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2011", .)))
+year2012 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2012", .)))
+year2013 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2013", .)))
+year2014 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2014", .)))
+year2015 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2015", .)))
+year2016 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2016", .)))
+year2017 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2017", .)))
+year2018 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2018", .)))
+
+
+
+total1 <-do.call("rbind", list(year2006,year2007,year2008,year2009, year2010, year2011, year2012, year2013, year2014, year2015, year2016, year2017,year2018))
+
+
+
+
+January <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^01/", .)))
+February <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^02/", .)))
+March <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^03/", .)))
+April <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^04/", .)))
+May <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^05/", .)))
+June <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^06/", .)))
+July <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^07/", .)))
+August <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^08/", .)))
+September <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^09/", .)))
+October <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^10/", .)))
+November <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^11/", .)))
+December <- total1 %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("^12/", .)))
+
+
+
+
+
+
+
+January <- table(January$BORO)
+February <-table(February$BORO)
+March <- table(March$BORO)
+April <- table(April$BORO)
+May <- table(May$BORO)
+June <- table(June$BORO)
+July <- table(July$BORO)
+August <- table(August$BORO)
+September <- table(September$BORO)
+October <- table(October$BORO)
+November <-table(November$BORO)
+December <- table(December$BORO)
+
+total1 <-do.call("rbind", list(January,February,March,April, May, June, July, August, September, October, November, December))
+
+
+total1 <- as.data.frame(total1)
+colnames(total1)[5] ="STATEN_ISLAND"
+
+
+Months = c("January","February","March","April", "May", "June", "July", "August","September","October","November", "December")
+total1$Months = Months
+total1$Months <- factor( total1$Months, levels = c( "January", "February","March", "April", "May", "June", "July", "August", "September", "October" , "November", "December" ))
+
+
+options(repr.plot.width = 20, repr.plot.height =20)
+
+library(ggplot2)
+gg1<- ggplot(total1, aes(x = Months)) +
+   geom_line(aes(y = BRONX, color = "BRONX", group = 1)) +
+   geom_point(aes(y = BRONX, color = "BRONX")) +
+   geom_line(aes(y = BROOKLYN, color = "BROOKLYN", group = 1)) +
+   geom_point(aes(y = BROOKLYN, color = "BROOKLYN")) +
+   geom_line(aes(y = MANHATTAN, color = "MANHATTAN", group = 1)) +
+   geom_point(aes(y = MANHATTAN, color = "MANHATTAN")) +
+   geom_line(aes(y = QUEENS, color = "QUEENS", group = 1)) +
+   geom_point(aes(y = QUEENS, color = "QUEENS")) +
+   geom_line(aes(y = STATEN_ISLAND, color = "STATEN_ISLAND", group = 1)) +
+   geom_point(aes(y = STATEN_ISLAND, color = "STATEN_ISLAND")) +
+   labs(subtitle = "Crimes VS Months",
+        y = "Number of Shootings",
+        x = "Months",
+        title = " Seasonal Changes in Crime in New York City ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+
+```
+``` {r}
+
+year2006 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2006", .)))
+year2007 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2007", .)))
+year2008 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2008", .)))
+year2009 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2009", .)))
+year2010 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2010", .)))
+year2011 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2011", .)))
+year2012 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2012", .)))
+year2013 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2013", .)))
+year2014 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2014", .)))
+year2015 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2015", .)))
+year2016 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2016", .)))
+year2017 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2017", .)))
+year2018 <- seasons %>% filter_at(vars(OCCUR_DATE:BORO), any_vars(grepl("2018", .)))
+
+
+year2006 <- table(year2006$BORO)
+year2007 <- table(year2007$BORO)
+year2008 <- table(year2008$BORO)
+year2009 <- table(year2009$BORO)
+year2010 <- table(year2010$BORO)
+year2011 <- table(year2011$BORO)
+year2012 <- table(year2012$BORO)
+year2013 <- table(year2013$BORO)
+year2014 <- table(year2014$BORO)
+year2015 <- table(year2015$BORO)
+year2016 <- table(year2016$BORO)
+year2017 <- table(year2017$BORO)
+year2018 <- table(year2018$BORO)
+
+
+total1 <-do.call("rbind", list(year2006,year2007,year2008,year2009, year2010, year2011, year2012, year2013, year2014, year2015, year2016, year2017,year2018))
+
+
+
+total1 <- as.data.frame(total1)
+colnames(total1)[5] ="STATEN_ISLAND"
+
+
+Months = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018")
+total1$Months = Months
+total1$Months <- factor( total1$Months, levels = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018" ))
+
+
+options(repr.plot.width = 20, repr.plot.height =20)
+
+library(ggplot2)
+gg2<- ggplot(total1, aes(x = Months)) +
+   geom_line(aes(y = BRONX, color = "BRONX", group = 1)) +
+   geom_point(aes(y = BRONX, color = "BRONX")) +
+   geom_line(aes(y = BROOKLYN, color = "BROOKLYN", group = 1)) +
+   geom_point(aes(y = BROOKLYN, color = "BROOKLYN")) +
+   geom_line(aes(y = MANHATTAN, color = "MANHATTAN", group = 1)) +
+   geom_point(aes(y = MANHATTAN, color = "MANHATTAN")) +
+   geom_line(aes(y = QUEENS, color = "QUEENS", group = 1)) +
+   geom_point(aes(y = QUEENS, color = "QUEENS")) +
+   labs(subtitle = "Crimes VS Months",
+        y = "Number of crimes",
+        x = "Years",
+        title = " Annual Changes in Crime in New York City ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+
+```
+
+
+
+
+
+```{r,message =FALSE, include= TRUE,warning=FALSE}
+
+
+
+
+January5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^01/", .)))
+colnames(January5)[2] ="January"
+February5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^02/", .)))
+colnames(February5)[2] ="February"
+March5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^03/", .)))
+colnames(March5)[2] ="March"
+April5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^04/", .)))
+colnames(April5)[2] ="April"
+May5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^05/", .)))
+colnames(May5)[2] ="May"
+June5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^06/", .)))
+colnames(June5)[2] ="June"
+July5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^07/", .)))
+colnames(July5)[2] ="July"
+August5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^08/", .)))
+colnames(August5)[2] ="August"
+September5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^09/", .)))
+colnames(September5)[2] ="September"
+October5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^10/", .)))
+colnames(October5)[2] ="October"
+November5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^11/", .)))
+colnames(November5)[2] ="November"
+December5 <- Brooklyn5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^12/", .)))
+colnames(December5)[2] ="December"
+
+
+years = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021")
+January5$years = years
+January5$years <- factor( January5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+February5$years = years
+February5$years <- factor( February5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+March5$years = years
+March5$years <- factor( March5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+April5$years = years
+April5$years <- factor( April5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+May5$years = years
+May5$years <- factor( May5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+June5$years = years
+June5$years <- factor( June5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+July5$years = years
+July5$years <- factor( July5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+August5$years = years
+August5$years <- factor( August5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+September5$years = years
+September5$years <- factor( September5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+October5$years = years
+October5$years <- factor( October5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+November5$years = years
+November5$years <- factor( November5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+December5$years = years
+December5$years <- factor( December5$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+January5 <-January5[,-1]
+February5 <-February5[,-1]
+
+March5 <-March5[,-1]
+
+April5 <-April5[,-1]
+May5 <-May5[,-1]
+
+June5 <-June5[,-1]
+July5 <- July5[,-1]
+August5 <- August5[,-1]
+September5 <- September5[,-1]
+October5 <- October5[,-1]
+November5 <- November5[,-1]
+December5 <-December5[,-1]
+
+
+listdf <- list(January5,February5, March5,April5,May5,June5,July5, August5, September5, October5, November5, December5)
+years5 <- listdf %>% reduce(inner_join, by='years')
+years5 <- years5 %>% relocate(January,.after = years)
+
+library(tidyverse)
+years <-years5 %>%
+    remove_rownames() %>%
+     column_to_rownames(var = 'years')
+
+
+totals_by_month <- colSums(years[ , c("January", "February", "March", "April", "May","June","July","August","September","October","November","December")])
+
+
+abc <- lm(years ~ January, data = years5)
+
+
+
+total5 <- rowMeans(years5[ , c("January", "February", "March", "April", "May","June","July","August","September","October","November","December")]) 
+
+years5$total5 = total5
+
+total76 <- colMeans(years5[ , c("January", "February", "March", "April", "May","June","July","August","September","October","November","December")])
+years5$total5 = total5
+
+more_totals<- as.data.frame(total76)
+
+
+
+
+
+library(ggplot2)
+gg3<- ggplot(years5, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+  geom_line(aes(y = February, color = "February", group = 1)) +
+   geom_point(aes(y = February, color = "February")) +
+     geom_line(aes(y = March, color = "March", group = 1)) +
+   geom_point(aes(y = March, color = "March")) +
+       geom_line(aes(y = April, color = "April", group = 1)) +
+   geom_point(aes(y = April, color = "April")) +
+       geom_line(aes(y = May, color = "May", group = 1)) +
+   geom_point(aes(y = May, color = "May")) +
+       geom_line(aes(y = June, color = "June", group = 1)) +
+   geom_point(aes(y = June, color = "June")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+       geom_line(aes(y = August, color = "August", group = 1)) +
+   geom_point(aes(y = August, color = "August")) +
+       geom_line(aes(y = September, color = "September", group = 1)) +
+   geom_point(aes(y = September, color = "September")) +
+       geom_line(aes(y = October, color = "October", group = 1)) +
+   geom_point(aes(y = October, color = "October")) +
+       geom_line(aes(y = November, color = "November", group = 1)) +
+   geom_point(aes(y = November, color = "November")) +
+       geom_line(aes(y = December, color = "December", group = 1)) +
+   geom_point(aes(y = December, color = "December")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Seasonal Changes in Crime in New York City in Brooklyn ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+
+
+
+
+
+
+notlateryears <-head(years5,-3)
+
+
+
+## Linear stuff
+Jan <- lm(total5 ~ January, data = years5)
+
+Feb <- lm(total5 ~ February, data = years5)
+
+Apr <- lm(total5 ~ April, data = years5)
+May <- lm(total5 ~ May, data = years5)
+June <- lm(total5 ~ June, data = years5)
+
+
+
+  
+
+## Prediction for January
+total7 <-years5 %>% mutate(pred = predict(Jan))
+
+
+
+
+
+
+library(ggplot2)
+gg4<- ggplot(notlateryears, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+  geom_line(aes(y = February, color = "February", group = 1)) +
+   geom_point(aes(y = February, color = "February")) +
+     geom_line(aes(y = March, color = "March", group = 1)) +
+   geom_point(aes(y = March, color = "March")) +
+       geom_line(aes(y = April, color = "April", group = 1)) +
+   geom_point(aes(y = April, color = "April")) +
+       geom_line(aes(y = May, color = "May", group = 1)) +
+   geom_point(aes(y = May, color = "May")) +
+       geom_line(aes(y = June, color = "June", group = 1)) +
+   geom_point(aes(y = June, color = "June")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+       geom_line(aes(y = August, color = "August", group = 1)) +
+   geom_point(aes(y = August, color = "August")) +
+       geom_line(aes(y = September, color = "September", group = 1)) +
+   geom_point(aes(y = September, color = "September")) +
+       geom_line(aes(y = October, color = "October", group = 1)) +
+   geom_point(aes(y = October, color = "October")) +
+       geom_line(aes(y = November, color = "November", group = 1)) +
+   geom_point(aes(y = November, color = "November")) +
+       geom_line(aes(y = December, color = "December", group = 1)) +
+   geom_point(aes(y = December, color = "December")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Brooklyn ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+
+
+
+library(ggplot2)
+gg14<- ggplot(notlateryears, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Brooklyn ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+
+
+
+library(tidyverse)
+notlateryears <-notlateryears %>%
+    remove_rownames() %>%
+     column_to_rownames(var = 'years')
+
+library(ggplot2)
+gg5 <- ggplot(Brooklyn11, aes(OCCUR_DATES, count)) + geom_line() + ylab("Count of occuring crimes") +
+  xlab("date") +
+  geom_point()+
+  geom_abline(slope = Brooklynap$coefficients[2],
+              intercept = Brooklynap$coefficients[1],
+              color= "blue",
+              size=1) +
+  ggtitle("Shooting frequencies in Brooklyn")
+
+
+
+
+```
+
+
+
+``` {r message =FALSE, include= TRUE,warning=FALSE}
+
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(tidyverse)
+library(data.table)
+Queens <- seasons %>% filter_at(vars(BORO), any_vars(grepl("QUEENS", .)))
+Queens$date_formatted <- format(Queens$OCCUR_DATES, "%m/%Y")
+
+Queens5 <- Queens %>% group_by(date_formatted) %>% summarise(frequency = n())
+
+
+Queens10 <-Queens
+
+Queens10 <-Queens10[order(Queens10$OCCUR_DATES),]
+Queens10 <-Queens10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+
+Queens11 <- Queens10[!duplicated(Queens10$OCCUR_DATES), ]
+Queens11 <-Queens11[,-1]
+Queens11 <-Queens11[,-1]
+Queens11 <-Queens11[,-1]
+
+Queensnap <- lm(count ~ OCCUR_DATES, data = Queens11)
+
+
+
+
+January6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^01/", .)))
+colnames(January6)[2] ="January"
+February6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^02/", .)))
+colnames(February6)[2] ="February"
+March6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^03/", .)))
+colnames(March6)[2] ="March"
+April6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^04/", .)))
+colnames(April6)[2] ="April"
+May6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^05/", .)))
+colnames(May6)[2] ="May"
+June6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^06/", .)))
+colnames(June6)[2] ="June"
+July6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^07/", .)))
+colnames(July6)[2] ="July"
+August6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^08/", .)))
+colnames(August6)[2] ="August"
+September6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^09/", .)))
+colnames(September6)[2] ="September"
+October6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^10/", .)))
+colnames(October6)[2] ="October"
+November6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^11/", .)))
+colnames(November6)[2] ="November"
+December6 <- Queens5 %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^12/", .)))
+colnames(December6)[2] ="December"
+
+
+
+
+years = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021")
+January6$years = years
+January6$years <- factor( January6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+February6$years = years
+February6$years <- factor( February6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+March6$years = years
+March6$years <- factor( March6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+April6$years = years
+April6$years <- factor( March6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+May6$years = years
+May6$years <- factor( May6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+June6$years = years
+June6$years <- factor( June6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+July6$years = years
+July6$years <- factor( July6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+August6$years = years
+August6$years <- factor( August6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+September6$years = years
+September6$years <- factor( September6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+October6$years = years
+October6$years <- factor( October6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+November6$years = years
+November6$years <- factor( November6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+December6$years = years
+December6$years <- factor( December6$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+January6 <-January6[,-1]
+February6 <-February6[,-1]
+
+March6 <-March6[,-1]
+
+April6 <-April6[,-1]
+
+May6 <-May6[,-1]
+
+June6 <-June6[,-1]
+July6 <- July6[,-1]
+August6 <- August6[,-1]
+September6 <- September6[,-1]
+October6 <- October6[,-1]
+November6 <- November6[,-1]
+December6 <-December6[,-1]
+
+
+listdfa <- list(January6,February6, March6,April6,May6,June6,July6, August6, September6, October6, November6, December6)
+years6 <- listdfa %>% reduce(inner_join, by='years')
+years6 <- years6 %>% relocate(January,.after = years)
+
+years6 <-head(years6,-3)
+
+
+
+#library(tidyverse)
+#years6 <-years6 %>%
+#     remove_rownames() %>%
+#     column_to_rownames(var = 'years')
+
+
+
+
+
+
+Queens <- Queens5
+
+
+library(ggplot2)
+gg6<- ggplot(years6, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+     geom_line(aes(y = February, color = "February", group = 1)) +
+     geom_line(aes(y = March, color = "March", group = 1)) +
+   geom_point(aes(y = March, color = "March")) +
+         geom_line(aes(y = April, color = "April", group = 1)) +
+   geom_point(aes(y = April, color = "April")) +
+       geom_line(aes(y = May, color = "May", group = 1)) +
+   geom_point(aes(y = May, color = "May")) +
+       geom_line(aes(y = June, color = "June", group = 1)) +
+   geom_point(aes(y = June, color = "June")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+       geom_line(aes(y = August, color = "August", group = 1)) +
+   geom_point(aes(y = August, color = "August")) +
+       geom_line(aes(y = September, color = "September", group = 1)) +
+   geom_point(aes(y = September, color = "September")) +
+       geom_line(aes(y = October, color = "October", group = 1)) +
+   geom_point(aes(y = October, color = "October")) +
+       geom_line(aes(y = November, color = "November", group = 1)) +
+   geom_point(aes(y = November, color = "November")) +
+       geom_line(aes(y = December, color = "December", group = 1)) +
+   geom_point(aes(y = December, color = "December")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Queens ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+
+abc <- lm(years ~ January, data = years6)
+
+
+
+total7 <- rowSums(years6[ , c("January", "February", "March", "April", "May","June","July","August","September","October","November","December")]) 
+
+years6$total5 = total7
+
+opr <- lm(total5 ~ April, data = years6)
+
+total7 <-years6 %>% mutate(pred = predict(opr))
+
+library(ggplot2)
+gg15<- ggplot(years6, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Queens ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+
+
+
+
+
+library(ggplot2)
+gg7 <-ggplot(Queens11, aes(OCCUR_DATES, count)) + geom_line() + ylab("Count of occuring crimes") +
+  xlab("date") +
+  geom_point()+
+  geom_abline(slope = Queensnap$coefficients[2],
+              intercept = Queensnap$coefficients[1],
+              color= "blue",
+              size=1) +
+  ggtitle("Shooting frequencies in Queens")
+
+
+``` 
+
+
+
+
+
+
+
+
+
+```{r message =FALSE, include= TRUE,warning=FALSE}
+
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(tidyverse)
+library(data.table)
+Manhattan <- seasons %>% filter_at(vars(BORO), any_vars(grepl("MANHATTAN", .)))
+Manhattan$date_formatted <- format(Manhattan$OCCUR_DATES, "%m/%Y")
+Manhattan5 <- Manhattan %>% group_by(date_formatted) %>% summarise(frequency = n())
+
+
+Manhattan10 <-Manhattan
+
+
+Manhattan10 <-Manhattan10[order(Manhattan10$OCCUR_DATES),]
+Manhattan10 <-Manhattan10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+Brooklyn10 <-Brooklyn10[order(Brooklyn10$OCCUR_DATES),]
+Brooklyn10 <-Brooklyn10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+
+Manhattan11 <- Manhattan10[!duplicated(Manhattan10$OCCUR_DATES), ]
+Manhattan11 <-Manhattan11[,-1]
+Manhattan11 <-Manhattan11[,-1]
+Manhattan11 <-Manhattan11[,-1]
+
+Manhattannap <- lm(count ~ OCCUR_DATES, data = Manhattan11)
+
+
+
+
+Manhattan <-Manhattan5
+January7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^01/", .)))
+colnames(January7)[2] ="January"
+February7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^02/", .)))
+colnames(February7)[2] ="February"
+March7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^03/", .)))
+colnames(March7)[2] ="March"
+April7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^04/", .)))
+colnames(April7)[2] ="April"
+May7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^05/", .)))
+colnames(May7)[2] ="May"
+June7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^06/", .)))
+colnames(June7)[2] ="June"
+July7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^07/", .)))
+colnames(July7)[2] ="July"
+August7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^08/", .)))
+colnames(August7)[2] ="August"
+September7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^09/", .)))
+colnames(September7)[2] ="September"
+October7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^10/", .)))
+colnames(October7)[2] ="October"
+November7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^11/", .)))
+colnames(November7)[2] ="November"
+December7 <- Manhattan %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^12/", .)))
+colnames(December7)[2] ="December"
+
+
+
+years = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021")
+January7$years = years
+January7$years <- factor( January7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+February7$years = years
+February7$years <- factor( February7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+March7$years = years
+March7$years <- factor( March7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+April7$years = years
+April7$years <- factor( March7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+May7$years = years
+May7$years <- factor( May7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+June7$years = years
+June7$years <- factor( June7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+July7$years = years
+July7$years <- factor( July7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+August7$years = years
+August7$years <- factor( August7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+September7$years = years
+September7$years <- factor( September7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+October7$years = years
+October7$years <- factor( October7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+November7$years = years
+November7$years <- factor( November7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+December7$years = years
+December7$years <- factor( December7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+January7 <-January7[,-1]
+February7 <-February7[,-1]
+
+March7 <-March7[,-1]
+
+April7 <-April7[,-1]
+May7 <-May7[,-1]
+
+June7 <-June7[,-1]
+July7 <- July7[,-1]
+August7 <- August7[,-1]
+September7 <- September7[,-1]
+October7 <- October7[,-1]
+November7 <- November7[,-1]
+December7 <-December7[,-1]
+
+
+listdfb <- list(January7,February7, March7,April7,May7,June7,July7, August7, September7, October7, November7, December7)
+years7 <- listdfb %>% reduce(inner_join, by='years')
+years7 <- years7 %>% relocate(January,.after = years)
+
+library(tidyverse)
+#years <-years7 %>%
+   # remove_rownames() %>%
+    # column_to_rownames(var = 'years')
+
+#years
+years7 <-head(years7,-3)
+
+library(ggplot2)
+gg8<- ggplot(years7, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+     geom_line(aes(y = February, color = "February", group = 1)) +
+   geom_point(aes(y = February, color = "February")) +
+     geom_line(aes(y = March, color = "March", group = 1)) +
+   geom_point(aes(y = March, color = "March")) +
+       geom_line(aes(y = April, color = "April", group = 1)) +
+   geom_point(aes(y = April, color = "April")) +
+       geom_line(aes(y = May, color = "May", group = 1)) +
+   geom_point(aes(y = May, color = "May")) +
+       geom_line(aes(y = June, color = "June", group = 1)) +
+   geom_point(aes(y = June, color = "June")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+       geom_line(aes(y = August, color = "August", group = 1)) +
+   geom_point(aes(y = August, color = "August")) +
+       geom_line(aes(y = September, color = "September", group = 1)) +
+   geom_point(aes(y = September, color = "September")) +
+       geom_line(aes(y = October, color = "October", group = 1)) +
+   geom_point(aes(y = October, color = "October")) +
+       geom_line(aes(y = November, color = "November", group = 1)) +
+   geom_point(aes(y = November, color = "November")) +
+       geom_line(aes(y = December, color = "December", group = 1)) +
+   geom_point(aes(y = December, color = "December")) +
+ 
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Manhattan ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+
+
+library(ggplot2)
+gg17<- ggplot(years7, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in Manhattan ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+
+
+
+
+library(ggplot2)
+gg9 <-ggplot(Manhattan11, aes(OCCUR_DATES, count)) + geom_line() + ylab("Count of occuring crimes") +
+  xlab("date") +
+  geom_point()+
+  geom_abline(slope = Manhattannap$coefficients[2],
+              intercept = Manhattannap$coefficients[1],
+              color= "blue",
+              size=1) +
+  ggtitle("Shooting frequencies in Manhattan")
+
+
+``` 
+
+
+``` {r message =FALSE, include= TRUE,warning=FALSE}
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(tidyverse)
+library(data.table)
+Bronx <- seasons %>% filter_at(vars(BORO), any_vars(grepl("BRONX", .)))
+Bronx$date_formatted <- format(Bronx$OCCUR_DATES, "%m/%Y")
+
+Bronx5 <- Bronx %>% group_by(date_formatted) %>% summarise(frequency = n())
+
+Bronx10 <-Bronx
+
+
+Bronx10 <-Bronx10[order(Bronx10$OCCUR_DATES),]
+Bronx10 <-Bronx10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+Bronx10 <-Bronx10[order(Bronx10$OCCUR_DATES),]
+Bronx10 <-Bronx10 %>% group_by(BORO, OCCUR_DATES) %>% mutate(count = n())
+
+
+
+Bronx11 <- Bronx10[!duplicated(Bronx10$OCCUR_DATES), ]
+Bronx11 <-Bronx11[,-1]
+Bronx11 <-Bronx11[,-1]
+Bronx11 <-Bronx11[,-1]
+
+Bronxnap <- lm(count ~ OCCUR_DATES, data = Bronx11)
+
+
+
+
+Bronx <-Bronx5
+
+January8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^01/", .)))
+colnames(January8)[2] ="January"
+February8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^02/", .)))
+colnames(February8)[2] ="February"
+March8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^03/", .)))
+colnames(March8)[2] ="March"
+April8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^04/", .)))
+colnames(April8)[2] ="April"
+May8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^05/", .)))
+colnames(May8)[2] ="May"
+June8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^06/", .)))
+colnames(June8)[2] ="June"
+July8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^07/", .)))
+colnames(July8)[2] ="July"
+August8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^08/", .)))
+colnames(August8)[2] ="August"
+September8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^09/", .)))
+colnames(September8)[2] ="September"
+October8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^10/", .)))
+colnames(October8)[2] ="October"
+November8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^11/", .)))
+colnames(November8)[2] ="November"
+December8 <- Bronx %>% filter_at(vars(date_formatted:frequency), any_vars(grepl("^12/", .)))
+colnames(December8)[2] ="December"
+
+
+years = c("2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021")
+January8$years = years
+January8$years <- factor( January7$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+February8$years = years
+February8$years <- factor( February8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+March8$years = years
+March8$years <- factor( March8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+April8$years = years
+April8$years <- factor( March8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+May8$years = years
+May8$years <- factor( May8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+June8$years = years
+June8$years <- factor( June8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+July8$years = years
+July8$years <- factor( July8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+August8$years = years
+August8$years <- factor( August8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+September8$years = years
+September8$years <- factor( September8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+October8$years = years
+October8$years <- factor( October8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+November8$years = years
+November8$years <- factor( November8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+December8$years = years
+December8$years <- factor( December8$years, levels = c( "2006","2007","2008","2009", "2010", "2011", "2012", "2013","2014","2015","2016", "2017","2018","2019","2020","2021" ))
+January8 <-January8[,-1]
+February8 <-February8[,-1]
+
+March8 <-March8[,-1]
+
+April8 <-April8[,-1]
+May8 <-May8[,-1]
+
+June8 <-June8[,-1]
+July8 <- July8[,-1]
+August8 <- August8[,-1]
+September8 <- September8[,-1]
+October8 <- October8[,-1]
+November8 <- November8[,-1]
+December8 <-December8[,-1]
+
+
+listdfc <- list(January8,February8, March8,April8,May8,June8,July8, August8, September8, October8, November8, December8)
+years8 <- listdfc %>% reduce(inner_join, by='years')
+years8 <- years8 %>% relocate(January,.after = years)
+
+#library(tidyverse)
+#years <-years8 %>%
+#     remove_rownames() %>%
+#     column_to_rownames(var = 'years')
+
+
+years8 <-head(years8,-3)
+
+library(ggplot2)
+gg10<- ggplot(years8, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+     geom_line(aes(y = February, color = "February", group = 1)) +
+   geom_point(aes(y = February, color = "February")) +
+     geom_line(aes(y = March, color = "March", group = 1)) +
+   geom_point(aes(y = March, color = "March")) +
+       geom_line(aes(y = April, color = "April", group = 1)) +
+   geom_point(aes(y = April, color = "April")) +
+       geom_line(aes(y = May, color = "May", group = 1)) +
+   geom_point(aes(y = May, color = "May")) +
+       geom_line(aes(y = June, color = "June", group = 1)) +
+   geom_point(aes(y = June, color = "June")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+       geom_line(aes(y = August, color = "August", group = 1)) +
+   geom_point(aes(y = August, color = "August")) +
+       geom_line(aes(y = September, color = "September", group = 1)) +
+   geom_point(aes(y = September, color = "September")) +
+       geom_line(aes(y = October, color = "October", group = 1)) +
+   geom_point(aes(y = October, color = "October")) +
+       geom_line(aes(y = November, color = "November", group = 1)) +
+   geom_point(aes(y = November, color = "November")) +
+       geom_line(aes(y = December, color = "December", group = 1)) +
+   geom_point(aes(y = December, color = "December")) +
+ 
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in the Bronx ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+library(ggplot2)
+gg19<- ggplot(years8, aes(x = years)) +
+   geom_line(aes(y = January, color = "January", group = 1)) +
+   geom_point(aes(y = January, color = "January")) +
+       geom_line(aes(y = July, color = "July", group = 1)) +
+   geom_point(aes(y = July, color = "July")) +
+   labs(subtitle = "Crimes VS years",
+        y = "Number of crimes",
+        x = "years",
+        title = " Annual Changes in Crime in New York City in the Bronx ",
+       caption = "Data Source: data.gov") +
+    scale_y_continuous(breaks =  c(0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200)) +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1))
+   
+
+
+
+abc <- lm(years ~ January, data = years8)
+
+
+
+total8 <- rowSums(years8[ , c("January", "February", "March", "April", "May","June","July","August","September","October","November","December")]) 
+
+years8$total5 = total8
+
+opr <- lm(total8 ~ April, data = years8)
+
+total8 <-years8 %>% mutate(pred = predict(opr))
+
+
+
+
+library(ggplot2)
+gg11 <-ggplot(Bronx11, aes(OCCUR_DATES, count)) + geom_line() + ylab("Count of occuring crimes") +
+  xlab("date") +
+  geom_point()+
+  geom_abline(slope = Bronxnap$coefficients[2],
+              intercept = Bronxnap$coefficients[1],
+              color= "blue",
+              size=1) +
+  ggtitle("Shooting frequencies in the Bronx")
+
+
+
+
+```
+
+```{r}
+
+pop <- 331893745
+life_expectancy <- 76.6
+occur <- 631
+
+risk <-(pop/occur/life_expectancy)
+risk <- round(risk,digits = 0)
+
+cause <- c("Heart_Disease","Cancer","Stroke","Hospital_Infection","Flu","Car_accident","Excesive_cold","In_a_shooting_in_Brooklyn")
+annual_deaths <- c(652486, 553888, 150074,99000,56664,44757,620,631)
+odds_one_out_of  <-c(5,7,24,38,63,84,6045,risk)
+odds_2021_Brooklyn <-c(5/risk ,7/risk, 24/risk ,38/risk,63/risk ,84/risk,6045/risk)
+odds_2021_Brooklyn <- round(odds_2021_Brooklyn,digits = 5)
+so_how_much_more_likely <-c(((1-(5/risk))*100) ,((1-(7/risk))*100),(1-(24/risk))*100 ,(1-(38/risk))*100,(1-(63/risk))*100 ,(1-(84/risk))*100,(1-(6045/risk))*100)
+so_how_much_more_likely <-round(so_how_much_more_likely,digits = 2)
+
+
+deaths_compare<-cbind(cause,annual_deaths,odds_one_out_of,odds_2021_Brooklyn,so_how_much_more_likely )
+deaths_compare1<- as.data.frame(deaths_compare)
+
+
+
+
+cause1 <- c("Heart_Disease","Cancer","Stroke","Hospital_Infection","Flu","Car_accident","Excesive_cold")
+annual_deaths1 <- c(652486, 553888, 150074,99000,56664,44757,620)
+odds_one_out_of1  <-c(5,7,24,38,63,84,6045)
+odds_2021_Brooklyn1 <-c(5/risk ,7/risk, 24/risk ,38/risk,63/risk ,84/risk)
+odds_2021_Brooklyn1 <- round(odds_2021_Brooklyn,digits = 5)
+so_how_much_more_likely1 <-c(((1-(5/risk))*100) ,((1-(7/risk))*100),(1-(24/risk))*100 ,(1-(38/risk))*100,(1-(63/risk))*100 ,(1-(84/risk))*100)
+so_how_much_more_likely1 <-round(so_how_much_more_likely,digits = 2)
+
+deaths_compare1<-cbind(cause1,annual_deaths1,odds_one_out_of1,odds_2021_Brooklyn1,so_how_much_more_likely1 )
+deaths_compare1<- as.data.frame(deaths_compare1)
+
+
+
+gg12 <-ggplot(data=deaths_compare1, aes(x=cause1, y=so_how_much_more_likely1)) +
+  geom_bar(stat="identity", width=0.25, fill= 'darkorchid3') +
+  theme(axis.text.x=element_text(angle=45,margin = margin(1, unit = "cm"),vjust =1)) +
+  xlab("Types of events") +
+  ylab("what % more likely is some event")+
+ggtitle("How much more likely is death from certain events than a shooting in Brooklyn")
+
+
+  
+  
+
+```
+
+
+
+
+
+
+
+## Results and discussion:
+This data set is a perfect example of how numerical data can be interpreted in many ways. And why it is important to look over results and be cautious and mindful when working with data to come to some conclusion. 
+The analyst saw a first supportive result and drew a conclusion from said result. instead of exploring the data further. And performing further analysis. 
+At first glance the numbers seem alarming. But upon closer inspection. It became quite clear that the data was summed over many years, rather than trending. When columns are all summed simply by month instead of using any type of trending, if there is an outlier it may and will often skew results. Additionally what this visualization does not show would be the changes from year to year, not just season to season. Or simply, more data points in general.
+
+
+
+
+
+``` {r}
+print("Figure 1")
+plot(gg)
+
+```
+
+
+When the data was divided further and inspected more closely. Some visual differences became quickly apparent.
+For example when the data for the Borough of Brooklyn was further explored. Some variables that would skew results were quickly seen. So those years at least for now were excluded. The data should of course be revisited and retrended once more data becomes available. 
+
+
+``` {r}
+plot(gg3)
+
+```
+
+
+But what can be seen even from this basic visualization, is that most of the data is closely packed and trends in a generally downward direction. 
+When the data is replotted excluding more recent years. An overall difference can be seen between summer months and winter months.
+
+``` {r}
+
+plot(gg4)
+
+
+```
+
+
+
+``` {r}
+
+plot(gg6)
+plot(gg8)
+plot(gg10)
+
+
+
+```
+
+When the data is further adjusted for even more extraneous data and replotted to the same visualization from before it does not actually change very much. As you can see the plot simply moves down slightly. 
+So could this data still be right and valid?
+
+
+
+```{r}
+plot(gg1)
+
+
+```
+A good thing to do would be to look over some smaller sections. The months of January and July were chosen to be plotted to see if there were any obvious differences between the way a plot of all shootings vs a plot of just a small slice of time would look.
+When the data is even more subdivided so there is less to confuse the eye. The data seems more flatenned and there apprears to be fewer differences. 
+
+
+While data for Brooklyn shows a generally higher rate of shootings during summer, the other Boroughs show mixed results. Some places have higher shooting counts in July and others have lower numbers. This kind of confounds and muddles the conclusions to be drawn from this analysis. 
+ 
+
+
+
+```{r}
+plot(gg14)
+plot(gg15)
+plot(gg17)
+plot(gg19)
+
+
+```
+
+
+This confusion can be further supported with the use of simple linear models. When monthly crime rates are trended and linear modeling is applied. Specifically trending the frequency of appearances of specific dates.The resulting visualization is very flat. With almost no change between different seasons, or years. And this is common to all Boroughs that were included in the study. All had close Y intercepts, and slopes showed to be very flat. Given all of this data and the results obtained from said data. The null hypothesis is rejected. Overall the summer and winter months show the same rates of shootings over time. This also highlights an important point when looking over data sets with a large variety of data. Should data like this be further subdivided into smaller groups and looked at in individual pieces? Or since the data shows an overall rejection of the null hypothesis should the results be taken at face value and not explored further?
+
+
+
+``` {r}
+
+plot(gg5)
+print("Linear model output for Brooklyn")
+Brooklynap$coefficients[1]
+Brooklynap$coefficients[2]
+plot(gg7)
+print("Linear model output for Queens")
+Queensnap$coefficients[1]
+Queensnap$coefficients[2]
+plot(gg9)
+print("Linear model output for Manhattan")
+Manhattannap$coefficients[1]
+Manhattannap$coefficients[2]
+plot(gg11)
+print("Linear model output for the Bronx")
+Bronxnap$coefficients[1]
+Bronxnap$coefficients[2]
+
+```
